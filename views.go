@@ -3,6 +3,7 @@ package slack
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 )
 
 const (
@@ -14,6 +15,22 @@ type ViewType string
 
 type ViewState struct {
 	Values map[string]map[string]BlockAction `json:"values"`
+}
+
+func (v *ViewState) UnmarshalJSON(b []byte) error {
+	var partial struct {
+		Values json.RawMessage
+	}
+	if err := json.Unmarshal(b, &partial); err != nil {
+		return fmt.Errorf("unmarshal into temporary structure: %w", err)
+	}
+	var values map[string]map[string]BlockAction
+	if err := json.Unmarshal(partial.Values, &values); err != nil {
+		// Sometimes slack sends [] instead of {} when there is no value.  VERY ANNOYING.
+		return nil
+	}
+	v.Values = values
+	return nil
 }
 
 type View struct {
